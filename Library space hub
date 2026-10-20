@@ -2,7 +2,7 @@
 	SPACE HUB - Interface Suite  v1.1.0
 ]]
 
-local SpaceHub = { Version = "1.0.0", Flags = {}, Icons = {}, AutoSave = true }
+local SpaceHub = { Version = "1.0.1", Flags = {}, Icons = {}, AutoSave = true }
 
 --// Services
 local Players = game:GetService("Players")
