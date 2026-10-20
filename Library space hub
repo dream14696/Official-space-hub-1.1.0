@@ -1,8 +1,16 @@
 --[[
-	SPACE HUB - Interface Suite  v1.1.0
+	SPACE HUB - Interface Suite  v1.0.0
+	Rayfield-style UI library for Roblox (Luau). Single file, loaded with loadstring.
+
+	local SpaceHub = loadstring(game:HttpGet("YOUR_RAW_URL"))()
+	local Window = SpaceHub:CreateWindow({ Name = "My Script" })
+	local Tab = Window:CreateTab("Main", "home")
+	Tab:CreateButton({ Name = "Hello", Callback = function() print("hi") end })
+
+	See SpaceHub_Example.lua for every element and option.
 ]]
 
-local SpaceHub = { Version = "1.1.0", Flags = {}, Icons = {}, AutoSave = true }
+local SpaceHub = { Version = "1.0.0", Flags = {}, Icons = {}, AutoSave = true }
 
 --// Services
 local Players = game:GetService("Players")
@@ -154,13 +162,7 @@ local function canFile()
 end
 
 local function copyText(txt)
-	local f = setclipboard or toclipboard or set_clipboard
-	if type(f) ~= "function" and type(Clipboard) == "table" and type(Clipboard.set) == "function" then
-		f = Clipboard.set
-	end
-	if type(f) ~= "function" and type(syn) == "table" and type(syn.write_clipboard) == "function" then
-		f = syn.write_clipboard
-	end
+	local f = setclipboard or toclipboard
 	if type(f) == "function" then
 		return (pcall(f, txt))
 	end
@@ -168,12 +170,12 @@ local function copyText(txt)
 end
 
 local ACCENTS = {
-	{ "\u{e1}", "a" }, { "\u{e0}", "a" }, { "\u{e4}", "a" }, { "\u{e2}", "a" }, { "\u{c1}", "a" }, { "\u{c0}", "a" }, { "\u{c4}", "a" }, { "\u{c2}", "a" },
-	{ "\u{e9}", "e" }, { "\u{e8}", "e" }, { "\u{eb}", "e" }, { "\u{ea}", "e" }, { "\u{c9}", "e" }, { "\u{c8}", "e" }, { "\u{cb}", "e" }, { "\u{ca}", "e" },
-	{ "\u{ed}", "i" }, { "\u{ec}", "i" }, { "\u{ef}", "i" }, { "\u{ee}", "i" }, { "\u{cd}", "i" }, { "\u{cc}", "i" }, { "\u{cf}", "i" }, { "\u{ce}", "i" },
-	{ "\u{f3}", "o" }, { "\u{f2}", "o" }, { "\u{f6}", "o" }, { "\u{f4}", "o" }, { "\u{d3}", "o" }, { "\u{d2}", "o" }, { "\u{d6}", "o" }, { "\u{d4}", "o" },
-	{ "\u{fa}", "u" }, { "\u{f9}", "u" }, { "\u{fc}", "u" }, { "\u{fb}", "u" }, { "\u{da}", "u" }, { "\u{d9}", "u" }, { "\u{dc}", "u" }, { "\u{db}", "u" },
-	{ "\u{f1}", "n" }, { "\u{d1}", "n" }, { "\u{e7}", "c" }, { "\u{c7}", "c" },
+	{ "á", "a" }, { "à", "a" }, { "ä", "a" }, { "â", "a" }, { "Á", "a" }, { "À", "a" }, { "Ä", "a" }, { "Â", "a" },
+	{ "é", "e" }, { "è", "e" }, { "ë", "e" }, { "ê", "e" }, { "É", "e" }, { "È", "e" }, { "Ë", "e" }, { "Ê", "e" },
+	{ "í", "i" }, { "ì", "i" }, { "ï", "i" }, { "î", "i" }, { "Í", "i" }, { "Ì", "i" }, { "Ï", "i" }, { "Î", "i" },
+	{ "ó", "o" }, { "ò", "o" }, { "ö", "o" }, { "ô", "o" }, { "Ó", "o" }, { "Ò", "o" }, { "Ö", "o" }, { "Ô", "o" },
+	{ "ú", "u" }, { "ù", "u" }, { "ü", "u" }, { "û", "u" }, { "Ú", "u" }, { "Ù", "u" }, { "Ü", "u" }, { "Û", "u" },
+	{ "ñ", "n" }, { "Ñ", "n" }, { "ç", "c" }, { "Ç", "c" },
 }
 local function normalize(s)
 	s = tostring(s)
@@ -191,15 +193,6 @@ local function safe(fn, ...)
 	if not ok then
 		warn("[Space Hub] Callback error: " .. tostring(err))
 		SpaceHub:Notify({ Title = "Callback error", Content = tostring(err), Duration = 6 })
-	end
-end
-
-local function ensureFolder(folder)
-	if type(isfolder) == "function" and type(makefolder) == "function" then
-		local ok, exists = pcall(isfolder, folder)
-		if ok and not exists then
-			pcall(makefolder, folder)
-		end
 	end
 end
 
@@ -417,16 +410,8 @@ local function drawGear(parent)
 	end
 end
 
---// ===================== GUI CONTAINER (multi-executor) =====================
+--// ===================== GUI CONTAINER =====================
 local function guiParent()
-	-- 1) gethui (most modern executors)
-	if type(gethui) == "function" then
-		local ok, h = pcall(gethui)
-		if ok and typeof(h) == "Instance" then
-			return h
-		end
-	end
-	-- 2) CoreGui if writable
 	local ok, core = pcall(function()
 		return game:GetService("CoreGui")
 	end)
@@ -440,27 +425,11 @@ local function guiParent()
 			return core
 		end
 	end
-	-- 3) PlayerGui fallback
 	return player:WaitForChild("PlayerGui")
-end
-
-local function protect(gui)
-	pcall(function()
-		if type(syn) == "table" and type(syn.protect_gui) == "function" then
-			syn.protect_gui(gui)
-		elseif type(protect_gui) == "function" then
-			protect_gui(gui)
-		elseif type(protectgui) == "function" then
-			protectgui(gui)
-		end
-	end)
 end
 
 local function keepOnTop(gui)
 	local cont = gui.Parent
-	if not cont then
-		return
-	end
 	local last = 0
 	local con = cont.ChildAdded:Connect(function(child)
 		if child ~= gui and child:IsA("ScreenGui") and os.clock() - last > 1 then
@@ -484,14 +453,10 @@ local function createGui(name)
 	if old then
 		old:Destroy()
 	end
-	local gui = Instance.new("ScreenGui")
-	gui.Name = name
-	gui.IgnoreGuiInset = true
-	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 2147483647
-	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	protect(gui)
-	gui.Parent = parent
+	local gui = new("ScreenGui", {
+		Name = name, IgnoreGuiInset = true, ResetOnSpawn = false,
+		DisplayOrder = 2147483647, ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	}, parent)
 	keepOnTop(gui)
 	table.insert(allGuis, gui)
 	return gui
@@ -513,7 +478,7 @@ function SpaceHub:Notify(o)
 				Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Bottom,
 			}, notifHolder)
 		end
-		notifCount = notifCount + 1
+		notifCount += 1
 		local wrap = new("Frame", {
 			LayoutOrder = notifCount, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1,
 		}, notifHolder)
@@ -595,7 +560,9 @@ function SpaceHub:SaveConfiguration()
 	end
 	local folder, path = configPath()
 	local ok = pcall(function()
-		ensureFolder(folder)
+		if type(isfolder) == "function" and type(makefolder) == "function" and not isfolder(folder) then
+			makefolder(folder)
+		end
 		writefile(path, HttpService:JSONEncode(data))
 	end)
 	return ok
@@ -759,7 +726,9 @@ local function runKeySystem(settings)
 		if check(box.Text) then
 			if ks.SaveKey ~= false and canFile() then
 				pcall(function()
-					ensureFolder(folder)
+					if type(isfolder) == "function" and type(makefolder) == "function" and not isfolder(folder) then
+						makefolder(folder)
+					end
 					writefile(path, box.Text)
 				end)
 			end
@@ -811,8 +780,7 @@ local function discordPrompt(d)
 		return
 	end
 	local folder = "SpaceHub"
-	local clean = tostring(d.Invite):gsub("[^%w]", "")
-	local mark = folder .. "/discord_" .. clean .. ".txt"
+	local mark = folder .. "/discord_" .. tostring(d.Invite):gsub("[^%w]", "") .. ".txt"
 	if d.RememberJoins ~= false and canFile() then
 		local ok, seen = pcall(isfile, mark)
 		if ok and seen then
@@ -831,7 +799,9 @@ local function discordPrompt(d)
 		end)
 		if copied and d.RememberJoins ~= false and canFile() then
 			pcall(function()
-				ensureFolder(folder)
+				if type(isfolder) == "function" and type(makefolder) == "function" and not isfolder(folder) then
+					makefolder(folder)
+				end
 				writefile(mark, "1")
 			end)
 		end
@@ -895,7 +865,7 @@ local function makeApi(page, tab, register)
 	local api = {}
 	local order = 0
 	local function nextOrder()
-		order = order + 1
+		order += 1
 		return order
 	end
 	api._nextOrder = nextOrder
@@ -1208,10 +1178,10 @@ local function makeApi(page, tab, register)
 				end)
 			end
 			local h = math.min(#options * 36 + 8, 182)
-			ex.Height = h
 			if ex.IsOpen() then
 				ex.SetOpen(true, h)
 			end
+			ex.Height = h
 			paint()
 		end
 		local origSetOpen = ex.SetOpen
@@ -1462,6 +1432,102 @@ local function makeApi(page, tab, register)
 		flag(o, obj)
 		return obj
 	end
+	-- ============================================================
+	-- PEGA ESTE BLOQUE en la libreria, dentro de makeApi(), justo
+	-- ANTES de la linea:   return api
+	-- (despues de api:CreateColorPicker)
+	-- ============================================================
+
+	-- Code block (marco de codigo con scroll y boton Copy)
+	function api:CreateCodeBlock(o)
+		local height = o.Height or 240
+		local f = row(page, height, nextOrder())
+		makeLabel(f, {
+			Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -110, 0, 34),
+			Text = o.Title or "Code", Font = Enum.Font.GothamMedium, TextSize = 13,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+		})
+		local copyFrame, copyBtn = makeButton(f, "Copy", 1, 24)
+		copyFrame.AnchorPoint = Vector2.new(1, 0)
+		copyFrame.Position = UDim2.new(1, -8, 0, 5)
+		copyFrame.Size = UDim2.fromOffset(78, 24)
+		copyBtn.TextSize = 12
+
+		local box = new("Frame", {
+			Position = UDim2.fromOffset(8, 34), Size = UDim2.new(1, -16, 1, -42),
+			BackgroundColor3 = C(14, 16, 22), BorderSizePixel = 0,
+		}, f)
+		corner(box, 6)
+		metalStroke(box, 1)
+		local scroll = new("ScrollingFrame", {
+			Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 4,
+			CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.XY,
+			ScrollingDirection = Enum.ScrollingDirection.XY,
+		}, box)
+		themed(scroll, "ScrollBarImageColor3", "Accent")
+		pad(scroll, 6, 8, 6, 8)
+		local list = new("Frame", {
+			Size = UDim2.new(0, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.XY, BackgroundTransparency = 1,
+		}, scroll)
+		new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder }, list)
+
+		local obj = { Type = "CodeBlock", CurrentValue = o.Code or "", Name = o.Title or "Code" }
+		local function render(code)
+			for _, c in ipairs(list:GetChildren()) do
+				if c:IsA("TextLabel") then
+					c:Destroy()
+				end
+			end
+			-- Roblox limita un TextLabel a ~16000 caracteres: se reparte en bloques de 60 lineas
+			local lines = string.split((tostring(code):gsub("\r", "")), "\n")
+			local chunk, n, idx = {}, 0, 0
+			local function flush()
+				if #chunk == 0 then
+					return
+				end
+				idx += 1
+				new("TextLabel", {
+					LayoutOrder = idx, Size = UDim2.new(0, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.XY,
+					BackgroundTransparency = 1, Font = Enum.Font.Code, TextSize = 12, TextColor3 = TEXT,
+					TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
+					TextWrapped = false, RichText = false, Text = table.concat(chunk, "\n"),
+				}, list)
+				chunk, n = {}, 0
+			end
+			for _, line in ipairs(lines) do
+				n += 1
+				chunk[n] = (line:gsub("\t", "    "))
+				if n >= 60 then
+					flush()
+				end
+			end
+			flush()
+		end
+		render(obj.CurrentValue)
+
+		local busy = false
+		copyBtn.Activated:Connect(function()
+			if busy then
+				return
+			end
+			busy = true
+			local ok = copyText(obj.CurrentValue)
+			copyBtn.Text = ok and "Copied!" or "Unavailable"
+			copyBtn.TextColor3 = ok and GREEN or RED
+			task.delay(1.2, function()
+				copyBtn.Text = "Copy"
+				copyBtn.TextColor3 = TEXT
+				busy = false
+			end)
+		end)
+		function obj:Set(code)
+			obj.CurrentValue = tostring(code)
+			render(obj.CurrentValue)
+		end
+		register(o.Title or "Code", "Label", f, tab)
+		return obj
+	end
+
 
 	return api
 end
@@ -1712,7 +1778,7 @@ function SpaceHub:CreateWindow(settings)
 			local n = 0
 			for _, e in ipairs(index) do
 				if string.find(e.key, q, 1, true) then
-					n = n + 1
+					n += 1
 					local _, b = makeButton(results, e.name, n, 30, nil, nil, true)
 					b.TextSize = 12
 					b.TextTruncate = Enum.TextTruncate.AtEnd
@@ -2078,7 +2144,7 @@ function SpaceHub:CreateWindow(settings)
 	-- ===== RESIZE (bottom-right corner, with limits) =====
 	local grip = new("TextButton", {
 		AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -4, 1, -4), Size = UDim2.fromOffset(24, 24),
-		BackgroundTransparency = 1, AutoButtonColor = false, Text = "\u{25E2}", Font = Enum.Font.GothamBold,
+		BackgroundTransparency = 1, AutoButtonColor = false, Text = "◢", Font = Enum.Font.GothamBold,
 		TextSize = 16, TextColor3 = BAR_GRAY, ZIndex = 20,
 	}, body)
 	grip.MouseEnter:Connect(function()
