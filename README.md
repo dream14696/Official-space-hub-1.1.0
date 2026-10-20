@@ -656,5 +656,5 @@ SpaceHub:LoadConfiguration()
 ## Creditos y licencia
 
 Hecho por **dream14696**
-mas: anonimo
+mas: anonimo_________
                                                     discord: https://discord.gg/3AdwRPp2H
