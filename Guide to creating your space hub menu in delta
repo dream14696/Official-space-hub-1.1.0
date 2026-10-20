@@ -1,0 +1,458 @@
+--[[
+	SPACE HUB - Menu de ejemplo v1.1.0
+	La libreria ahora se carga desde GitHub (ya no va dentro de este archivo).
+	Este archivo solo contiene el EJEMPLO del menu con todos los elementos.
+]]
+
+local LIBRARY_URL = "https://raw.githubusercontent.com/dream14696/Official-space-hub-1.1.0/refs/heads/main/Library%20space%20hub"
+
+local okLib, SpaceHub = pcall(function()
+	return loadstring(game:HttpGet(LIBRARY_URL))()
+end)
+if not okLib or type(SpaceHub) ~= "table" then
+	warn("[Space Hub] No se pudo cargar la libreria: " .. tostring(SpaceHub))
+	return
+end
+
+local player = game:GetService("Players").LocalPlayer
+
+-- Texto que se muestra dentro del marco de codigo (pestana Info).
+-- Es una version resumida y comentada de este mismo guion.
+local EXAMPLE_CODE = [==[
+-- 1) CARGAR LA LIBRERIA (se descarga y se ejecuta)
+local SpaceHub = loadstring(game:HttpGet(
+  "https://raw.githubusercontent.com/dream14696/Official-space-hub-1.1.0/refs/heads/main/Library%20space%20hub"
+))()
+
+-- 2) CREAR LA VENTANA (el menu en si)
+local Window = SpaceHub:CreateWindow({
+  Name = "Space Hub",
+  Theme = "Space",
+  ToggleKey = Enum.KeyCode.RightShift,
+  LoadingScreen = true,
+  LoadingDuration = 3,
+  ConfigurationSaving = {
+    Enabled = true,
+    FolderName = "SpaceHubExample",
+    FileName = "config",
+  },
+})
+
+-- 3) CREAR PESTANAS (categorias del menu)
+local Main    = Window:CreateTab("Main")
+local Values  = Window:CreateTab("Values")
+local Control = Window:CreateTab("Control")
+local Info    = Window:CreateTab("Info")
+
+-- 4) ANADIR ELEMENTOS A UNA PESTANA
+Main:CreateSection("Informacion")
+Main:CreateLabel("Un texto simple")
+Main:CreateParagraph({
+  Title = "Titulo",
+  Content = "Texto largo que se ajusta solo.",
+})
+
+Main:CreateButton({
+  Name = "Boton",
+  Callback = function()
+    SpaceHub:Notify({ Title = "Hola", Content = "Boton pulsado", Duration = 4 })
+  end,
+})
+
+Main:CreateToggle({
+  Name = "Toggle",
+  CurrentValue = false,
+  Flag = "ExampleToggle",
+  Callback = function(value)
+    print("Toggle:", value)
+  end,
+})
+
+Values:CreateSlider({
+  Name = "WalkSpeed",
+  Range = { 16, 200 },
+  Increment = 1,
+  Suffix = "studs/s",
+  CurrentValue = 16,
+  Flag = "ExampleSpeed",
+  Callback = function(value)
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if hum then hum.WalkSpeed = value end
+  end,
+})
+
+Values:CreateDropdown({
+  Name = "Dropdown multiple",
+  Options = { "Rojo", "Verde", "Azul" },
+  MultipleOptions = true,
+  CurrentOption = { "Rojo" },
+  Flag = "ExampleMulti",
+  Callback = function(selected)
+    print(table.concat(selected, ", "))
+  end,
+})
+
+Values:CreateInput({
+  Name = "Input de texto",
+  PlaceholderText = "Escribe aqui...",
+  Flag = "ExampleInput",
+  Callback = function(text) print(text) end,
+})
+
+Control:CreateKeybind({
+  Name = "Keybind",
+  CurrentKeybind = "F",
+  HoldToInteract = false,
+  Flag = "ExampleKeybind",
+  Callback = function(key) print("Pulsaste", key) end,
+})
+
+Control:CreateColorPicker({
+  Name = "Color Picker",
+  Color = Color3.fromRGB(135, 148, 255),
+  Flag = "ExampleColor",
+  Callback = function(color) print(color) end,
+})
+
+-- 5) FUNCIONES DE LA VENTANA
+Window:Minimize(true)          -- minimizar
+Window:Hide()                  -- ocultar
+Window:SetTheme("Emerald")     -- cambiar tema
+Window:SetMenuType("horizontal")
+
+-- 6) GUARDADO
+SpaceHub:LoadConfiguration()   -- carga lo ultimo guardado
+]==]
+
+--// ================== VENTANA ==================
+local Window = SpaceHub:CreateWindow({
+	Name = "Space Hub",
+	Theme = "Space", -- Space, Titanium, Graphite, Cobalt, Emerald, Crimson, Violet, Steel, Obsidian, Amber
+	ToggleKey = Enum.KeyCode.RightShift,
+	MobileButton = nil, -- nil = automatico (boton "Show" en movil)
+	Width = 640, Height = 400,
+	LoadingScreen = true,
+	LoadingDuration = 3,
+
+	ConfigurationSaving = {
+		Enabled = true,
+		FolderName = "SpaceHubExample",
+		FileName = "config",
+	},
+
+	Discord = {
+		Enabled = false, -- pon true y tu invite para activarlo
+		Invite = "tuInvite",
+		RememberJoins = true,
+	},
+
+	KeySystem = false, -- pon true para activar el sistema de keys
+	KeySettings = {
+		Title = "Space Hub",
+		Subtitle = "Key System",
+		Note = "Consigue tu key en el enlace.",
+		FileName = "SpaceHubKey",
+		SaveKey = true,
+		GrabKeyFromSite = false,
+		Key = { "SPACE-1234" },
+		KeyLink = "https://ejemplo.com/key",
+	},
+})
+
+---------------------------------------------------------------------
+-- TAB 1: Elementos basicos
+---------------------------------------------------------------------
+local Main = Window:CreateTab("Main", 124826554388136)
+
+Main:CreateSection("Informacion")
+local lbl = Main:CreateLabel("Esto es un Label (se puede cambiar con :Set)")
+Main:CreateLabel("Label con icono", 124826554388136)
+local para = Main:CreateParagraph({
+	Title = "Paragraph",
+	Content = "Texto largo que se ajusta solo al ancho del menu. Sirve para explicar funciones, mostrar cambios o avisos.",
+})
+
+Main:CreateSection("Botones y toggles")
+Main:CreateButton({
+	Name = "Button (muestra una notificacion)",
+	Callback = function()
+		SpaceHub:Notify({ Title = "Hola!", Content = "Pulsaste el boton.", Duration = 4 })
+	end,
+})
+Main:CreateButton({
+	Name = "Cambiar Label y Paragraph",
+	Callback = function()
+		lbl:Set("Label actualizado: " .. os.date("%H:%M:%S"))
+		para:Set({ Title = "Paragraph actualizado", Content = "El contenido fue cambiado desde un boton." })
+	end,
+})
+Main:CreateToggle({
+	Name = "Toggle",
+	CurrentValue = false,
+	Flag = "ExampleToggle",
+	Callback = function(v)
+		print("Toggle:", v)
+	end,
+})
+Main:CreateToggle({
+	Name = "Toggle activado por defecto",
+	CurrentValue = true,
+	Flag = "ExampleToggle2",
+	Callback = function(v)
+		print("Toggle 2:", v)
+	end,
+})
+
+---------------------------------------------------------------------
+-- TAB 2: Valores
+---------------------------------------------------------------------
+local Values = Window:CreateTab("Values")
+
+Values:CreateSection("Slider")
+Values:CreateSlider({
+	Name = "WalkSpeed",
+	Range = { 16, 200 },
+	Increment = 1,
+	Suffix = "studs/s",
+	CurrentValue = 16,
+	Flag = "ExampleSpeed",
+	Callback = function(v)
+		local char = player.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = v
+		end
+	end,
+})
+Values:CreateSlider({
+	Name = "Decimales",
+	Range = { 0, 1 },
+	Increment = 0.05,
+	CurrentValue = 0.5,
+	Flag = "ExampleDecimal",
+	Callback = function(v)
+		print("Decimal:", v)
+	end,
+})
+
+Values:CreateSection("Dropdown")
+Values:CreateDropdown({
+	Name = "Dropdown (una opcion)",
+	Options = { "Opcion 1", "Opcion 2", "Opcion 3" },
+	CurrentOption = { "Opcion 1" },
+	Flag = "ExampleDropdown",
+	Callback = function(opt)
+		print("Seleccionado:", opt[1])
+	end,
+})
+local multi = Values:CreateDropdown({
+	Name = "Dropdown multiple",
+	Options = { "Rojo", "Verde", "Azul", "Amarillo", "Morado", "Naranja" },
+	MultipleOptions = true,
+	CurrentOption = { "Rojo", "Azul" },
+	Flag = "ExampleMulti",
+	Callback = function(opt)
+		print("Multiples:", table.concat(opt, ", "))
+	end,
+})
+Values:CreateButton({
+	Name = "Refrescar opciones del dropdown multiple",
+	Callback = function()
+		multi:Refresh({ "Uno", "Dos", "Tres", "Cuatro" })
+	end,
+})
+
+Values:CreateSection("Input")
+Values:CreateInput({
+	Name = "Input de texto",
+	PlaceholderText = "Escribe aqui...",
+	CurrentValue = "",
+	RemoveTextAfterFocusLost = false,
+	Flag = "ExampleInput",
+	Callback = function(text)
+		print("Input:", text)
+	end,
+})
+
+---------------------------------------------------------------------
+-- TAB 3: Control
+---------------------------------------------------------------------
+local Control = Window:CreateTab("Control")
+
+Control:CreateSection("Keybinds")
+Control:CreateKeybind({
+	Name = "Keybind (pulsar)",
+	CurrentKeybind = "F",
+	HoldToInteract = false,
+	Flag = "ExampleKeybind",
+	Callback = function(key)
+		SpaceHub:Notify({ Title = "Keybind", Content = "Pulsaste " .. tostring(key), Duration = 2 })
+	end,
+})
+Control:CreateKeybind({
+	Name = "Keybind (mantener)",
+	CurrentKeybind = "G",
+	HoldToInteract = true,
+	Flag = "ExampleHold",
+	Callback = function(holding)
+		print("Manteniendo G:", holding)
+	end,
+})
+
+Control:CreateSection("Color")
+Control:CreateColorPicker({
+	Name = "Color Picker",
+	Color = Color3.fromRGB(135, 148, 255),
+	Flag = "ExampleColor",
+	Callback = function(c)
+		print("Color:", math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255))
+	end,
+})
+
+Control:CreateSection("Ventana")
+Control:CreateButton({
+	Name = "Minimizar ventana",
+	Callback = function()
+		Window:Minimize(true)
+	end,
+})
+Control:CreateButton({
+	Name = "Ocultar ventana (vuelve con la tecla)",
+	Callback = function()
+		Window:Hide()
+	end,
+})
+Control:CreateButton({
+	Name = "Cambiar tema a Emerald",
+	Callback = function()
+		Window:SetTheme("Emerald")
+	end,
+})
+Control:CreateButton({
+	Name = "Menu en categorias horizontales",
+	Callback = function()
+		Window:SetMenuType("horizontal")
+	end,
+})
+Control:CreateButton({
+	Name = "Menu en categorias verticales",
+	Callback = function()
+		Window:SetMenuType("vertical")
+	end,
+})
+
+---------------------------------------------------------------------
+-- TAB 4: Info (detalles del menu + guia para principiantes + codigo)
+---------------------------------------------------------------------
+local Info = Window:CreateTab("Info")
+
+Info:CreateSection("Detalles del menu")
+Info:CreateParagraph({
+	Title = "Que incluye este menu",
+	Content = "Section, Label, Paragraph, Button, Toggle, Slider, Dropdown (simple y multiple), Input, Keybind y ColorPicker. "
+		.. "Ademas: busqueda global, perfil del jugador, 10 temas, ajustes, guardado de configuracion, notificaciones, "
+		.. "key system, aviso de Discord, minimizar, mover, redimensionar y boton movil.",
+})
+Info:CreateParagraph({
+	Title = "Atajos",
+	Content = "RightShift muestra u oculta el menu. Arrastra la barra bajo el menu para moverlo. "
+		.. "La esquina inferior derecha cambia el tamano. Pulsa tu perfil (abajo a la izquierda) para ver tus datos.",
+})
+Info:CreateButton({
+	Name = "Cargar configuracion guardada",
+	Callback = function()
+		SpaceHub:LoadConfiguration()
+	end,
+})
+
+Info:CreateSection("Guia completa para principiantes")
+
+Info:CreateParagraph({
+	Title = "1. Que es esto?",
+	Content = "Space Hub es una libreria de interfaz: un conjunto de piezas ya hechas (botones, interruptores, barras, listas...) "
+		.. "para que no tengas que dibujar cada rectangulo y cada texto a mano. Tu solo dices 'quiero un boton que se llame X y que haga Y' "
+		.. "y la libreria se encarga del diseno, las animaciones, los temas y el guardado. "
+		.. "Este menu que estas viendo es un EJEMPLO: sirve para ver todas las piezas funcionando y para copiar el codigo.",
+})
+
+Info:CreateParagraph({
+	Title = "2. Como se carga la libreria",
+	Content = "La libreria vive en un archivo en GitHub. La primera linea del guion hace tres cosas seguidas: "
+		.. "game:HttpGet(URL) descarga el texto del archivo desde internet, loadstring(...) convierte ese texto en una funcion "
+		.. "y el par de parentesis final () la ejecuta. Lo que devuelve la funcion es la libreria, que guardamos en la variable SpaceHub. "
+		.. "A partir de ahi usamos SpaceHub para crear la ventana. Si el enlace falla o no hay internet, el guion avisa en la consola y se detiene.",
+})
+
+Info:CreateParagraph({
+	Title = "3. La estructura: Ventana > Pestanas > Elementos",
+	Content = "Piensa en el menu como una carpeta. La VENTANA es la carpeta entera (se crea una sola vez con CreateWindow). "
+		.. "Dentro hay PESTANAS (las categorias de la izquierda, se crean con CreateTab). "
+		.. "Y dentro de cada pestana pones ELEMENTOS (CreateButton, CreateToggle, CreateSlider...). "
+		.. "El orden en el que escribes las lineas es el orden en el que aparecen en pantalla, de arriba hacia abajo.",
+})
+
+Info:CreateParagraph({
+	Title = "4. Que hace cada elemento",
+	Content = "Section: una linea con titulo para separar grupos.  Label: un texto simple.  Paragraph: un titulo con texto largo.  "
+		.. "Button: ejecuta algo cuando lo pulsas.  Toggle: interruptor de encendido/apagado (da true o false).  "
+		.. "Slider: barra para elegir un numero dentro de un rango.  Dropdown: lista desplegable, de una opcion o de varias.  "
+		.. "Input: caja donde el usuario escribe texto.  Keybind: eliges una tecla y el menu avisa cuando se pulsa.  "
+		.. "ColorPicker: selector de color que te da un Color3.",
+})
+
+Info:CreateParagraph({
+	Title = "5. Que es un Callback",
+	Content = "El Callback es la funcion que se ejecuta cuando el usuario toca el elemento. Es el 'que pasa despues'. "
+		.. "Normalmente recibe el nuevo valor: el Toggle te da true/false, el Slider te da el numero, el Input te da el texto, "
+		.. "el Dropdown te da una lista con lo elegido y el ColorPicker te da un color. "
+		.. "Ejemplo: Callback = function(valor) print(valor) end imprime en la consola cada cambio. "
+		.. "Si tu codigo dentro del Callback da error, el menu te lo muestra en una notificacion en vez de romperse.",
+})
+
+Info:CreateParagraph({
+	Title = "6. Que es un Flag y como se guarda todo",
+	Content = "El Flag es un nombre unico que le pones a un elemento, por ejemplo Flag = 'MiVelocidad'. "
+		.. "Gracias a el, el menu puede guardar el valor en un archivo y devolverlo la proxima vez que lo abras. "
+		.. "Esto solo funciona si ConfigurationSaving.Enabled es true y tu ejecutor permite escribir archivos. "
+		.. "El guardado es automatico (puedes apagarlo en Ajustes > Auto save). Regla importante: cada Flag debe ser distinto.",
+})
+
+Info:CreateParagraph({
+	Title = "7. Controlar elementos despues de crearlos",
+	Content = "Cada CreateXxx devuelve un objeto. Si lo guardas en una variable puedes cambiarlo mas tarde: "
+		.. "local etiqueta = Main:CreateLabel('Hola') y luego etiqueta:Set('Adios'). "
+		.. "Lo mismo con toggle:Set(true), slider:Set(50), dropdown:Set({'Rojo'}) o dropdown:Refresh({'A','B'}) para cambiar sus opciones. "
+		.. "Tambien puedes leer el valor actual con toggle.CurrentValue o slider.CurrentValue.",
+})
+
+Info:CreateParagraph({
+	Title = "8. Crear tu propio menu en 5 pasos",
+	Content = "Paso 1: copia la linea de loadstring para cargar la libreria.  "
+		.. "Paso 2: crea la ventana con SpaceHub:CreateWindow({ Name = 'Mi Hub' }).  "
+		.. "Paso 3: crea una pestana con Window:CreateTab('Principal').  "
+		.. "Paso 4: anade elementos a la pestana, por ejemplo Tab:CreateButton({ Name = 'Hola', Callback = function() print('hola') end }).  "
+		.. "Paso 5: ejecuta el guion y prueba. Abajo tienes el guion de este menu para usarlo como plantilla.",
+})
+
+Info:CreateParagraph({
+	Title = "9. Si algo no funciona",
+	Content = "El menu no aparece: revisa que el enlace de la libreria sea correcto y que tu ejecutor soporte HttpGet y loadstring.  "
+		.. "No se guarda nada: tu ejecutor puede no tener writefile/readfile.  "
+		.. "Un boton no hace nada: mira la consola (F9), el error sale ahi y tambien como notificacion.  "
+		.. "El menu se oculto: pulsa RightShift o el boton 'Show' en movil.  "
+		.. "Un icono no carga: el menu usa un texto o dibujo de respaldo automaticamente.",
+})
+
+Info:CreateSection("Codigo del guion ejemplar")
+Info:CreateCodeBlock({
+	Title = "SpaceHub_Example.lua (resumen comentado)",
+	Code = EXAMPLE_CODE,
+	Height = 300,
+})
+
+-- Carga automatica de los valores guardados al iniciar
+task.delay(0.5, function()
+	SpaceHub:LoadConfiguration()
+end)
+
+SpaceHub:Notify({ Title = "Space Hub", Content = "Menu de ejemplo cargado.", Duration = 5 })
