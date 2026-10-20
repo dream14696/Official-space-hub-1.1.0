@@ -1,5 +1,5 @@
 --[[
-	SPACE HUB - Interface Suite  v1.0.0
+	SPACE HUB - Interface Suite  v1.1.0
 	Rayfield-style UI library for Roblox (Luau). Single file, loaded with loadstring.
 
 	local SpaceHub = loadstring(game:HttpGet("YOUR_RAW_URL"))()
