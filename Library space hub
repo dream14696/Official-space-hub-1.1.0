@@ -12,7 +12,6 @@
 
 local SpaceHub = { Version = "1.0.0", Flags = {}, Icons = {}, AutoSave = true }
 
---// Services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -22,7 +21,6 @@ local GuiService = game:GetService("GuiService")
 
 local player = Players.LocalPlayer
 
---// Asset IDs (override before CreateWindow: SpaceHub.Assets.Title = "rbxassetid://...")
 local ASSETS = {
 	Logo = "rbxassetid://125106043223530",
 	LogoFallback = "rbxassetid://73585195635518",
@@ -37,14 +35,12 @@ local ASSETS = {
 }
 SpaceHub.Assets = ASSETS
 
---// Sizes
 local SIZE = {
 	Width = 640, Height = 400, Header = 42,
 	MinW = 480, MinH = 310, MaxW = 860, MaxH = 580,
 	PillW = 200, PillH = 44, Profile = 60,
 }
 
---// Colors
 local TEXT = Color3.fromRGB(232, 234, 255)
 local MUTED = Color3.fromRGB(154, 160, 208)
 local WHITE = Color3.new(1, 1, 1)
@@ -59,7 +55,6 @@ local function C(r, g, b)
 	return Color3.fromRGB(r, g, b)
 end
 
---// Themes (dark, techy, metallic)
 local THEMES = {
 	{ Name = "Space", Background = C(29, 33, 80), Line = C(44, 50, 112), Accent = C(135, 148, 255) },
 	{ Name = "Titanium", Background = C(38, 42, 52), Line = C(78, 85, 100), Accent = C(146, 174, 204) },
@@ -80,7 +75,6 @@ local themeHooks = {}
 local connections = {}
 local allGuis = {}
 
---// ===================== UTILITIES =====================
 local function tw(obj, t, props, style, dir)
 	local tween = TweenService:Create(obj, TweenInfo.new(t, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props)
 	tween:Play()
@@ -196,7 +190,6 @@ local function safe(fn, ...)
 	end
 end
 
---// Auto-save (debounced)
 local saveQueued = false
 local function autosave()
 	local s = SpaceHub._settings
@@ -213,7 +206,6 @@ local function autosave()
 	end)
 end
 
---// Icons: Roblox ID (number / "rbxassetid://") or name from SpaceHub.Icons (Lucide map)
 local function applyIcon(img, icon)
 	local spec
 	if type(icon) == "number" then
@@ -247,7 +239,6 @@ local function applyIcon(img, icon)
 	return true
 end
 
--- SpaceHub:SetIcons({ home = "rbxassetid://...", ... }) or SpaceHub:SetIcons("https://.../icons.lua")
 function SpaceHub:SetIcons(source)
 	local map = source
 	if type(source) == "string" then
@@ -281,7 +272,6 @@ local function loadImage(obj, id, onFail)
 	end)
 end
 
---// Metal border (static brushed steel)
 local function metalStroke(obj, thickness)
 	local s = new("UIStroke", { Thickness = thickness, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Color = WHITE }, obj)
 	new("UIGradient", {
@@ -307,7 +297,6 @@ local function makeLabel(parent, props)
 	return new("TextLabel", props, parent)
 end
 
---// Long metal button
 local function makeButton(parent, caption, order, height, c1, c2, left)
 	local frame = new("Frame", {
 		LayoutOrder = order, Size = UDim2.new(1, 0, 0, height), BackgroundColor3 = WHITE, BorderSizePixel = 0,
@@ -326,7 +315,6 @@ local function makeButton(parent, caption, order, height, c1, c2, left)
 	return frame, button
 end
 
---// Element row (steel background + metal border)
 local function row(parent, height, order)
 	local frame = new("Frame", {
 		LayoutOrder = order or 0, Size = UDim2.new(1, 0, 0, height), BackgroundColor3 = WHITE, BorderSizePixel = 0,
@@ -337,7 +325,6 @@ local function row(parent, height, order)
 	return frame
 end
 
---// Collapsible block (used by Dropdown / ColorPicker / Themes)
 local function expandable(parent, order, name, bodyHeight)
 	local cont = new("Frame", {
 		LayoutOrder = order, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1,
@@ -376,12 +363,10 @@ local function expandable(parent, order, name, bodyHeight)
 	return ex
 end
 
---// Screen position helper (all Space Hub GUIs ignore the GUI inset)
 local function screenPos(input)
 	return Vector2.new(input.Position.X, input.Position.Y + GuiService:GetGuiInset().Y)
 end
 
---// Fallback icons drawn with frames
 local function drawMagnifier(parent)
 	local ring = new("Frame", { Position = UDim2.fromOffset(2, 2), Size = UDim2.fromOffset(11, 11), BackgroundTransparency = 1 }, parent)
 	corner(ring, UDim.new(1, 0))
@@ -410,7 +395,6 @@ local function drawGear(parent)
 	end
 end
 
---// ===================== GUI CONTAINER =====================
 local function guiParent()
 	local ok, core = pcall(function()
 		return game:GetService("CoreGui")
@@ -462,7 +446,6 @@ local function createGui(name)
 	return gui
 end
 
---// ===================== NOTIFICATIONS =====================
 local notifGui, notifHolder, notifCount = nil, nil, 0
 
 function SpaceHub:Notify(o)
@@ -533,7 +516,6 @@ function SpaceHub:Notify(o)
 	end)
 end
 
---// ===================== CONFIGURATION SAVING =====================
 local function configPath()
 	local cs = (SpaceHub._settings and SpaceHub._settings.ConfigurationSaving) or {}
 	local folder = cs.FolderName or "SpaceHub"
@@ -598,7 +580,6 @@ function SpaceHub:LoadConfiguration()
 	return true
 end
 
---// ===================== MODALS (confirm / key system / Discord) =====================
 local function makeModal(gui, width)
 	local vp = workspace.CurrentCamera.ViewportSize
 	local veil = new("TextButton", {
@@ -816,7 +797,6 @@ local function discordPrompt(d)
 	end)
 end
 
---// ===================== LOADING SCREEN =====================
 local function pickLogo(id, fallback)
 	local probe = Instance.new("ImageLabel")
 	probe.Image = id
@@ -848,7 +828,6 @@ local function showLoading(settings)
 	gui:Destroy()
 end
 
---// ===================== ELEMENT API =====================
 local function makePage(parent)
 	local page = new("ScrollingFrame", {
 		Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3,
@@ -876,7 +855,6 @@ local function makeApi(page, tab, register)
 		end
 	end
 
-	-- Section
 	function api:CreateSection(name)
 		local f = new("Frame", { LayoutOrder = nextOrder(), Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1 }, page)
 		local t = makeLabel(f, { Size = UDim2.new(1, 0, 1, -4), Text = name, Font = Enum.Font.GothamBold, TextColor3 = MUTED, TextSize = 12 })
@@ -889,7 +867,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- Label
 	function api:CreateLabel(txt, icon)
 		local f = row(page, 36, nextOrder())
 		local x = 12
@@ -910,7 +887,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- Paragraph
 	function api:CreateParagraph(o)
 		local f = row(page, 0, nextOrder())
 		f.AutomaticSize = Enum.AutomaticSize.Y
@@ -933,7 +909,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- Button
 	function api:CreateButton(o)
 		local f = row(page, 40, nextOrder())
 		local b = new("TextButton", {
@@ -954,7 +929,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- Toggle
 	function api:CreateToggle(o)
 		local f = row(page, 40, nextOrder())
 		makeLabel(f, { Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -80, 1, 0), Text = o.Name, Font = Enum.Font.GothamMedium, TextSize = 14 })
@@ -1033,7 +1007,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- Slider
 	function api:CreateSlider(o)
 		local min, max = o.Range[1], o.Range[2]
 		local inc = o.Increment or 1
@@ -1115,7 +1088,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- Dropdown (single or multiple selection)
 	function api:CreateDropdown(o)
 		local options = o.Options or {}
 		local multiple = o.MultipleOptions == true
@@ -1225,7 +1197,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- Input (text box)
 	function api:CreateInput(o)
 		local f = row(page, 40, nextOrder())
 		makeLabel(f, { Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.5, -12, 1, 0), Text = o.Name, Font = Enum.Font.GothamMedium, TextSize = 14 })
@@ -1260,7 +1231,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- Keybind
 	function api:CreateKeybind(o)
 		local f = row(page, 40, nextOrder())
 		makeLabel(f, { Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.5, -12, 1, 0), Text = o.Name, Font = Enum.Font.GothamMedium, TextSize = 14 })
@@ -1327,7 +1297,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- Color picker
 	function api:CreateColorPicker(o)
 		local ex = expandable(page, nextOrder(), o.Name, 156)
 		local color = o.Color or WHITE
@@ -1432,13 +1401,7 @@ local function makeApi(page, tab, register)
 		flag(o, obj)
 		return obj
 	end
-	-- ============================================================
-	-- PEGA ESTE BLOQUE en la libreria, dentro de makeApi(), justo
-	-- ANTES de la linea:   return api
-	-- (despues de api:CreateColorPicker)
-	-- ============================================================
 
-	-- Code block (marco de codigo con scroll y boton Copy)
 	function api:CreateCodeBlock(o)
 		local height = o.Height or 240
 		local f = row(page, height, nextOrder())
@@ -1478,7 +1441,6 @@ local function makeApi(page, tab, register)
 					c:Destroy()
 				end
 			end
-			-- Roblox limita un TextLabel a ~16000 caracteres: se reparte en bloques de 60 lineas
 			local lines = string.split((tostring(code):gsub("\r", "")), "\n")
 			local chunk, n, idx = {}, 0, 0
 			local function flush()
@@ -1528,11 +1490,9 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-
 	return api
 end
 
---// ===================== WINDOW =====================
 function SpaceHub:CreateWindow(settings)
 	settings = settings or {}
 	if self._window then
@@ -1571,7 +1531,6 @@ function SpaceHub:CreateWindow(settings)
 	local W = math.clamp(settings.Width or SIZE.Width, math.min(SIZE.MinW, maxW()), maxW())
 	local H = math.clamp(settings.Height or SIZE.Height, math.min(SIZE.MinH, maxH()), maxH())
 
-	-- The window can leave the screen, but the grab line always stays reachable
 	local function limit(x, y, w, h)
 		local t = screen()
 		return Vector2.new(math.clamp(x, 30 - w / 2, t.X - 30 - w / 2), math.clamp(y, -h - 9, t.Y - h - 41))
@@ -1583,7 +1542,6 @@ function SpaceHub:CreateWindow(settings)
 		BackgroundTransparency = 1,
 	}, gui)
 
-	-- Soft layered shadows
 	local shadows = {}
 	for i = 1, 8 do
 		local extra = i * 1.2
@@ -1599,7 +1557,6 @@ function SpaceHub:CreateWindow(settings)
 	local frameCorner = corner(frame, 12)
 	themed(new("UIStroke", { Thickness = 1 }, frame), "Color", "Line")
 
-	-- Grab line under the menu (gray idle, white while moving)
 	local grab = new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 14), Size = UDim2.fromOffset(190, 28), BackgroundTransparency = 1,
 	}, container)
@@ -1615,7 +1572,6 @@ function SpaceHub:CreateWindow(settings)
 		end
 	end
 
-	-- Header
 	local header = new("Frame", { Size = UDim2.new(1, 0, 0, SIZE.Header), BackgroundTransparency = 1 }, frame)
 	local titleImg = new("ImageLabel", {
 		AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 2, 0.5, -1), Size = UDim2.fromOffset(66, 36),
@@ -1653,7 +1609,6 @@ function SpaceHub:CreateWindow(settings)
 	local btnMin = iconButton(ASSETS.Minimize, "-", 32)
 	local btnClose = iconButton(ASSETS.Close, "x", 64)
 
-	-- Controls shown only while minimized
 	local pillControls = new("CanvasGroup", {
 		Position = UDim2.new(1, -72, 0, 7), Size = UDim2.fromOffset(66, 30), BackgroundTransparency = 1,
 		GroupTransparency = 1, Visible = false, ZIndex = 3,
@@ -1661,7 +1616,6 @@ function SpaceHub:CreateWindow(settings)
 	local btnMax = iconButton(ASSETS.Maximize, "+", 0, pillControls)
 	local btnMove = iconButton(ASSETS.Move, "=", 36, pillControls)
 
-	-- Body
 	local body = new("CanvasGroup", {
 		Position = UDim2.fromOffset(0, SIZE.Header), Size = UDim2.new(1, 0, 1, -SIZE.Header), BackgroundTransparency = 1,
 	}, frame)
@@ -1674,7 +1628,6 @@ function SpaceHub:CreateWindow(settings)
 		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0.4) }),
 	}, bottomShade)
 
-	-- ===== MAIN VIEW (tabs + search + pages + profile card) =====
 	local mainView = new("CanvasGroup", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 2 }, body)
 
 	local tabList = new("ScrollingFrame", {
@@ -1691,7 +1644,6 @@ function SpaceHub:CreateWindow(settings)
 
 	local content = new("Frame", { BackgroundTransparency = 1 }, mainView)
 
-	-- Profile card (always bottom-left)
 	local card = new("Frame", {
 		AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 8, 1, -8), Size = UDim2.fromOffset(150, SIZE.Profile),
 		BackgroundTransparency = 0.85, BorderSizePixel = 0, ZIndex = 4,
@@ -1712,7 +1664,6 @@ function SpaceHub:CreateWindow(settings)
 	})
 	local profileBtn = new("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 6 }, card)
 
-	-- Search index
 	local index = {}
 	local function register(name, kind, frameRef, tabRef)
 		local ok, key = pcall(normalize, name)
@@ -1722,7 +1673,6 @@ function SpaceHub:CreateWindow(settings)
 	local showView, selectTab, applyMode, goTo
 	local mode = "vertical"
 
-	-- ===== SEARCH =====
 	local setSearchLayout
 	do
 		local vertical = true
@@ -1817,7 +1767,6 @@ function SpaceHub:CreateWindow(settings)
 		box:GetPropertyChangedSignal("Text"):Connect(render)
 	end
 
-	-- ===== TABS =====
 	local tabs = {}
 	local selectedTab
 	local function tabSize()
@@ -1878,7 +1827,6 @@ function SpaceHub:CreateWindow(settings)
 		return tab
 	end
 
-	-- ===== SETTINGS VIEW =====
 	local settingsView = new("CanvasGroup", {
 		Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, GroupTransparency = 1, Visible = false, ZIndex = 3,
 	}, body)
@@ -1892,7 +1840,6 @@ function SpaceHub:CreateWindow(settings)
 	local settingsTab = { _isSettings = true, Name = "Settings" }
 	local sApi = makeApi(settingsPage, settingsTab, register)
 
-	-- ===== PROFILE VIEW =====
 	local profileView = new("CanvasGroup", {
 		Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, GroupTransparency = 1, Visible = false, ZIndex = 3,
 	}, body)
@@ -1983,7 +1930,6 @@ function SpaceHub:CreateWindow(settings)
 		end
 	end)
 
-	-- ===== VIEW SWITCHING =====
 	local views = { main = mainView, settings = settingsView, profile = profileView }
 	local currentView = "main"
 	function showView(name)
@@ -2012,7 +1958,6 @@ function SpaceHub:CreateWindow(settings)
 		showView("main")
 	end)
 
-	-- Search result -> go to element (switch view/tab, scroll and flash it)
 	function goTo(e)
 		if e.tab and e.tab._isSettings then
 			showView("settings")
@@ -2042,7 +1987,6 @@ function SpaceHub:CreateWindow(settings)
 		end)
 	end
 
-	-- ===== LAYOUT MODES (vertical / horizontal categories) =====
 	function applyMode(m)
 		mode = m
 		local v = (m == "vertical")
@@ -2052,7 +1996,6 @@ function SpaceHub:CreateWindow(settings)
 		tabLayout.FillDirection = v and Enum.FillDirection.Vertical or Enum.FillDirection.Horizontal
 		tabList.ScrollingDirection = v and Enum.ScrollingDirection.Y or Enum.ScrollingDirection.X
 		tabList.AutomaticCanvasSize = v and Enum.AutomaticSize.Y or Enum.AutomaticSize.X
-		-- padding so the metal borders of the buttons are never clipped
 		tabPad.PaddingLeft = UDim.new(0, 3)
 		tabPad.PaddingTop = UDim.new(0, 3)
 		tabPad.PaddingRight = UDim.new(0, v and 6 or 3)
@@ -2071,7 +2014,6 @@ function SpaceHub:CreateWindow(settings)
 		end
 	end
 
-	-- ===== BUILT-IN SETTINGS PAGE =====
 	sApi:CreateSection("Interface")
 	do
 		local rows = math.ceil(#THEMES / 3)
@@ -2141,7 +2083,6 @@ function SpaceHub:CreateWindow(settings)
 	})
 	sApi:CreateSection("Window")
 
-	-- ===== RESIZE (bottom-right corner, with limits) =====
 	local grip = new("TextButton", {
 		AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -4, 1, -4), Size = UDim2.fromOffset(24, 24),
 		BackgroundTransparency = 1, AutoButtonColor = false, Text = "◢", Font = Enum.Font.GothamBold,
@@ -2161,7 +2102,6 @@ function SpaceHub:CreateWindow(settings)
 		end
 	end)
 
-	-- ===== MINIMIZE / MAXIMIZE (from the edges toward the center) =====
 	local minimized = false
 	local function setMinimized(v)
 		minimized = v
@@ -2215,7 +2155,6 @@ function SpaceHub:CreateWindow(settings)
 		setMinimized(false)
 	end)
 
-	-- ===== CONFIRM DIALOG (close / destroy) =====
 	local dialogOpen = false
 	local function confirm(title, message, confirmText, onConfirm)
 		if dialogOpen then
@@ -2262,7 +2201,6 @@ function SpaceHub:CreateWindow(settings)
 		end,
 	})
 
-	-- ===== DRAGGING (header, pill and grab line) =====
 	local drag
 	local function startDrag(input, fromGrab, onlyMove)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -2338,7 +2276,6 @@ function SpaceHub:CreateWindow(settings)
 		end
 	end)
 
-	-- ===== SHOW / HIDE (toggle key + mobile button) =====
 	local hidden = false
 	local showBtn = new("TextButton", {
 		AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 12), Size = UDim2.fromOffset(160, 34),
@@ -2400,7 +2337,6 @@ function SpaceHub:CreateWindow(settings)
 		end
 	end)
 
-	--// Public window API
 	function Window:Notify(o)
 		SpaceHub:Notify(o)
 	end
@@ -2420,7 +2356,6 @@ function SpaceHub:CreateWindow(settings)
 		SpaceHub:Destroy()
 	end
 
-	-- ===== START =====
 	applyMode("vertical")
 	tw(frame, 0.4, { GroupTransparency = 0 }, Enum.EasingStyle.Sine)
 	for _, s in ipairs(shadows) do
@@ -2434,7 +2369,6 @@ function SpaceHub:CreateWindow(settings)
 	return Window
 end
 
---// ===================== DESTROY =====================
 function SpaceHub:Destroy()
 	for _, c in ipairs(connections) do
 		pcall(function()
