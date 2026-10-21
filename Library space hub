@@ -930,67 +930,68 @@ local function makeApi(page, tab, register)
 	end
 
 	function api:CreateToggle(o)
+		local TRACK_ON = C(54, 226, 104)
+		local TRACK_OFF = C(98, 101, 110)
+		local STROKE_ON = C(176, 255, 204)
+		local STROKE_OFF = C(122, 140, 130)
+		local LAYERS = 50
+
 		local f = row(page, 40, nextOrder())
 		makeLabel(f, { Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -80, 1, 0), Text = o.Name, Font = Enum.Font.GothamMedium, TextSize = 14 })
 		local holder = new("Frame", {
 			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(46, 26), BackgroundTransparency = 1,
 		}, f)
-		local halo = new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1, 10, 1, 10),
-			BackgroundColor3 = WHITE, BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 1,
+
+		local glowGroup = new("CanvasGroup", {
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1, 44, 1, 44),
+			BackgroundTransparency = 1, GroupTransparency = 1, ZIndex = 1,
 		}, holder)
-		corner(halo, UDim.new(1, 0))
-		new("UIGradient", {
-			Rotation = 35,
-			Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0, C(255, 255, 255)), ColorSequenceKeypoint.new(0.3, C(70, 245, 140)),
-				ColorSequenceKeypoint.new(0.5, C(20, 200, 100)), ColorSequenceKeypoint.new(0.7, C(70, 245, 140)),
-				ColorSequenceKeypoint.new(1, C(255, 255, 255)),
-			}),
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(0.5, 0.5), NumberSequenceKeypoint.new(1, 0.1),
-			}),
-		}, halo)
+		local outerColor, innerColor = C(40, 235, 170), C(40, 235, 105)
+		for i = 1, LAYERS do
+			local k = i / LAYERS
+			local extra = (LAYERS - i + 1) * 0.26
+			local alpha = 0.002 + 0.05 * k * k
+			local layer = new("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.new(0, 46 + extra * 2, 0, 26 + extra * 2),
+				BackgroundColor3 = outerColor:Lerp(innerColor, k), BackgroundTransparency = 1 - alpha,
+				BorderSizePixel = 0, ZIndex = 1,
+			}, glowGroup)
+			corner(layer, UDim.new(1, 0))
+		end
+
 		local track = new("TextButton", {
-			Size = UDim2.fromScale(1, 1), BackgroundColor3 = GRAY, BackgroundTransparency = 0.4,
-			AutoButtonColor = false, Text = "", ZIndex = 2,
+			Size = UDim2.fromScale(1, 1), BackgroundColor3 = TRACK_OFF, BackgroundTransparency = 0,
+			AutoButtonColor = false, Text = "", ZIndex = 3,
 		}, holder)
 		corner(track, UDim.new(1, 0))
-		local trackStroke = new("UIStroke", { Thickness = 2, Color = C(150, 150, 150), Transparency = 0.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, track)
+		local trackStroke = new("UIStroke", { Thickness = 2, Color = STROKE_OFF, Transparency = 0.45, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, track)
 		new("UIGradient", {
-			Rotation = 35,
-			Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0, C(255, 255, 255)), ColorSequenceKeypoint.new(0.3, C(90, 255, 160)),
-				ColorSequenceKeypoint.new(0.55, C(255, 255, 255)), ColorSequenceKeypoint.new(0.8, C(60, 235, 130)),
-				ColorSequenceKeypoint.new(1, C(235, 255, 242)),
-			}),
-		}, trackStroke)
+			Rotation = 90,
+			Color = ColorSequence.new(WHITE, C(222, 222, 222)),
+		}, track)
+
+		local ballHalo = new("Frame", {
+			Position = UDim2.new(0, 0, 0.5, -12), Size = UDim2.fromOffset(24, 24), BackgroundColor3 = C(190, 255, 215),
+			BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 4,
+		}, track)
+		corner(ballHalo, UDim.new(1, 0))
 		local ball = new("Frame", {
-			Position = UDim2.new(0, 3, 0.5, -9), Size = UDim2.fromOffset(18, 18), BackgroundColor3 = WHITE, BorderSizePixel = 0,
+			Position = UDim2.new(0, 3, 0.5, -9), Size = UDim2.fromOffset(18, 18), BackgroundColor3 = WHITE, BorderSizePixel = 0, ZIndex = 5,
 		}, track)
 		corner(ball, UDim.new(1, 0))
-		new("UIGradient", { Rotation = 90, Color = ColorSequence.new(WHITE, C(215, 215, 215)) }, ball)
-		local glow = new("UIStroke", { Thickness = 4, Color = WHITE, Transparency = 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, ball)
-		new("UIGradient", {
-			Rotation = 45,
-			Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0, WHITE), ColorSequenceKeypoint.new(0.5, C(190, 255, 215)), ColorSequenceKeypoint.new(1, WHITE),
-			}),
-		}, glow)
+		new("UIGradient", { Rotation = 90, Color = ColorSequence.new(WHITE, C(222, 222, 222)) }, ball)
 
 		local obj = { Type = "Toggle", CurrentValue = o.CurrentValue == true, Name = o.Name }
 		local function visual(on, animate)
-			apply(track, { BackgroundColor3 = on and GREEN or GRAY }, animate, 0.4)
-			apply(trackStroke, { Color = on and WHITE or C(150, 150, 150), Transparency = on and 0 or 0.5 }, animate, 0.4)
-			apply(halo, { BackgroundTransparency = on and 0.3 or 1 }, animate, 0.4)
+			apply(track, { BackgroundColor3 = on and TRACK_ON or TRACK_OFF }, animate, 0.4)
+			apply(trackStroke, { Color = on and STROKE_ON or STROKE_OFF, Transparency = on and 0.1 or 0.45 }, animate, 0.4)
+			apply(glowGroup, { GroupTransparency = on and 0 or 1 }, animate, 0.45)
+			apply(ballHalo, {
+				Position = on and UDim2.new(1, -24, 0.5, -12) or UDim2.new(0, 0, 0.5, -12),
+				BackgroundTransparency = on and 0.55 or 1,
+			}, animate, 0.35)
 			apply(ball, { Position = on and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9) }, animate, 0.35)
-			if animate then
-				tw(glow, 0.15, { Transparency = 0.15 }).Completed:Connect(function()
-					tw(glow, 0.4, { Transparency = on and 0.55 or 1 })
-				end)
-			else
-				glow.Transparency = on and 0.55 or 1
-			end
 		end
 		function obj:Set(v)
 			obj.CurrentValue = v == true
