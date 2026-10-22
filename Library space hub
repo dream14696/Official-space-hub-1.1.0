@@ -1,24 +1,4 @@
---[[
-	SPACE HUB - Interface Suite  v2.0.0
-	 UI library for Roblox (Luau). Single file, loaded with loadstring.
-
-	local SpaceHub = loadstring(game:HttpGet("YOUR_RAW_URL"))()
-	local Window = SpaceHub:CreateWindow({ Name = "My Script" })
-	local Tab = Window:CreateTab("Main", "home")
-	Tab:CreateButton({ Name = "Hello", Callback = function() print("hi") end })
-
-	See SpaceHub_Example.lua for every element and option.
-
-	NEW ELEMENTS (v2.1):
-	Tab:CreateCodeInput({ Name, Height, CurrentValue, PlaceholderText, Flag, Callback(text) })
-		Multi-line box. Enter = new line. Callback fires when the box loses focus.
-	Tab:CreateMessageInput({ Name, PlaceholderText, ButtonText, NumbersOnly, ClearOnSend, KeepFocus, Callback(text, number) })
-		Chat-style box. Enter (or the Send button) applies immediately.
-	Tab:CreatePowerInput({ Name, CurrentValue, Min, Max, AllowDecimal, AllowNegative, PlaceholderText, Flag, Callback(number) })
-		Numeric-only box. Enter applies the number.
-]]
-
-local SpaceHub = { Version = "1.0.0", Flags = {}, Icons = {}, AutoSave = true, Haptics = true }
+local SpaceHub = { Version = "2.1.0", Flags = {}, Icons = {}, AutoSave = true, Haptics = true }
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -78,8 +58,31 @@ local THEMES = {
 }
 SpaceHub.Themes = THEMES
 
+local function lum(c)
+	return 0.2126 * c.R + 0.7152 * c.G + 0.0722 * c.B
+end
+local function ensureVisible(c, bg, minDiff)
+	local target = lum(bg) < 0.5 and Color3.new(1, 1, 1) or Color3.fromRGB(12, 14, 20)
+	for _ = 1, 12 do
+		if math.abs(lum(c) - lum(bg)) >= minDiff then
+			break
+		end
+		c = c:Lerp(target, 0.15)
+	end
+	return c
+end
+for _, t in ipairs(THEMES) do
+	local dark = lum(t.Background) < 0.5
+	local extreme = dark and Color3.new(1, 1, 1) or Color3.fromRGB(12, 14, 20)
+	t.Text = t.Text or ensureVisible(t.Accent:Lerp(extreme, 0.82), t.Background, 0.6)
+	t.Muted = t.Muted or ensureVisible(t.Accent:Lerp(extreme, 0.2), t.Background, 0.4)
+	t.Flash = t.Flash or ensureVisible(t.Accent:Lerp(extreme, 0.15), t.Background, 0.35)
+end
+
 local Theme = THEMES[1]
+TEXT, MUTED = Theme.Text, Theme.Muted
 local themeRegistry = {}
+local softRegistry = {}
 local themeHooks = {}
 local connections = {}
 local allGuis = {}
@@ -99,12 +102,19 @@ local function apply(obj, props, animate, t, style)
 	end
 end
 
+local SOFT_PROPS = { "TextColor3", "PlaceholderColor3", "ImageColor3" }
 local function new(class, props, parent)
 	local o = Instance.new(class)
 	for k, v in pairs(props) do
 		o[k] = v
 	end
 	o.Parent = parent
+	for _, prop in ipairs(SOFT_PROPS) do
+		local v = props[prop]
+		if v ~= nil and (v == TEXT or v == MUTED) then
+			table.insert(softRegistry, { o, prop })
+		end
+	end
 	return o
 end
 
@@ -126,7 +136,23 @@ local function themed(obj, prop, key)
 end
 
 local function applyTheme(t)
+	local oldText, oldMuted = TEXT, MUTED
 	Theme = t
+	TEXT, MUTED = t.Text, t.Muted
+	for i = #softRegistry, 1, -1 do
+		local r = softRegistry[i]
+		local inst, prop = r[1], r[2]
+		if inst.Parent then
+			local cur = inst[prop]
+			if cur == oldText then
+				tw(inst, 0.35, { [prop] = TEXT })
+			elseif cur == oldMuted then
+				tw(inst, 0.35, { [prop] = MUTED })
+			end
+		else
+			table.remove(softRegistry, i)
+		end
+	end
 	for i = #themeRegistry, 1, -1 do
 		local r = themeRegistry[i]
 		if r[1].Parent then
@@ -172,7 +198,6 @@ local function copyText(txt)
 	return false
 end
 
--- Vibracion corta y suave (HapticService). Funciona en Delta si el dispositivo/control la soporta.
 local HAPTIC_STRENGTH = 0.22
 local HAPTIC_TIME = 0.05
 local hapticBusy = false
@@ -202,12 +227,6 @@ local function haptic()
 end
 SpaceHub.Haptic = haptic
 
--- ============================================================
--- NUEVO: destello azul (estilo Rayfield) + toque seguro ante scroll
--- ============================================================
-local BLUE = C(64, 148, 255)
-
--- Capa de color que aparece y se desvanece sobre un elemento.
 local function overlayFlash(target, radius, color, alpha, duration, withStroke)
 	if not (target and target.Parent) then
 		return
@@ -227,15 +246,47 @@ local function overlayFlash(target, radius, color, alpha, duration, withStroke)
 	end)
 end
 
--- Destello azul momentaneo + vibracion pequeña.
-local function flashBlue(target, radius, alpha)
-	overlayFlash(target, radius, BLUE, alpha or 0.45, 0.6, true)
+local function glowFlash(target, color, duration)
+	local host = target and target.Parent
+	if not host then
+		return
+	end
+	color = color or Theme.Flash
+	duration = duration or 0.75
+	local ax, ay = target.AnchorPoint.X, target.AnchorPoint.Y
+	local layers = {
+		{ pad = 3, alpha = 0.45 },
+		{ pad = 7, alpha = 0.66 },
+		{ pad = 12, alpha = 0.82 },
+	}
+	for i, L in ipairs(layers) do
+		local pad = L.pad
+		local g = new("Frame", {
+			AnchorPoint = target.AnchorPoint,
+			Position = target.Position + UDim2.fromOffset(pad * (2 * ax - 1), pad * (2 * ay - 1)),
+			Size = target.Size + UDim2.fromOffset(pad * 2, pad * 2),
+			BackgroundColor3 = color, BackgroundTransparency = L.alpha, BorderSizePixel = 0,
+			ZIndex = target.ZIndex + 18 + i, Active = false,
+		}, host)
+		corner(g, 6 + pad)
+		local grow = pad + 4
+		local t = tw(g, duration, {
+			BackgroundTransparency = 1,
+			Position = target.Position + UDim2.fromOffset(grow * (2 * ax - 1), grow * (2 * ay - 1)),
+			Size = target.Size + UDim2.fromOffset(grow * 2, grow * 2),
+		})
+		t.Completed:Connect(function()
+			g:Destroy()
+		end)
+	end
+end
+
+local function flashGlow(target, radius, alpha)
+	overlayFlash(target, radius, Theme.Flash, alpha or 0.45, 0.6, true)
+	glowFlash(target, Theme.Flash)
 	haptic()
 end
 
--- Toque seguro: solo cuenta como "clic" si el dedo no se movio, la pagina no
--- se desplazo (ni venia con inercia) y el toque fue corto. Evita activaciones
--- accidentales al hacer scroll.
 local function safeTap(hit, scroller, onTap)
 	local press
 	local lastScroll = 0
@@ -269,7 +320,6 @@ local function safeTap(hit, scroller, onTap)
 	end)
 end
 
--- Intenta abrir el teclado NUMERICO en moviles (segun lo que soporte el cliente).
 local function numericKeyboard(tb)
 	pcall(function()
 		tb.ContentType = Enum.ContentType.Number
@@ -281,7 +331,6 @@ local function numericKeyboard(tb)
 		tb.KeyboardType = Enum.KeyboardType.Number
 	end)
 end
--- ============================================================
 
 local ACCENTS = {
 	{ "á", "a" }, { "à", "a" }, { "ä", "a" }, { "â", "a" }, { "Á", "a" }, { "À", "a" }, { "Ä", "a" }, { "Â", "a" },
@@ -1055,7 +1104,7 @@ local function makeApi(page, tab, register)
 		local STROKE_ON = C(176, 255, 204)
 		local STROKE_OFF = C(122, 140, 130)
 		local LAYERS = 200
-		local GLOW_REACH = 56 -- pixeles maximos que se extiende el destello por cada lado
+		local GLOW_REACH = 56
 
 		local f = row(page, 40, nextOrder())
 		makeLabel(f, { Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -80, 1, 0), Text = o.Name, Font = Enum.Font.GothamMedium, TextSize = 14 })
@@ -1063,9 +1112,6 @@ local function makeApi(page, tab, register)
 			AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(46, 26), BackgroundTransparency = 1,
 		}, f)
 
-		-- CORREGIDO: el destello ya NO es un CanvasGroup (un CanvasGroup anidado dentro del
-		-- CanvasGroup "content" se dibujaba como un rectangulo blanco). Ahora es un Frame normal
-		-- y el fundido se hace cambiando la transparencia de cada capa con un NumberValue.
 		local glowGroup = new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.new(1, GLOW_REACH * 2 + 4, 1, GLOW_REACH * 2 + 4),
@@ -1086,7 +1132,6 @@ local function makeApi(page, tab, register)
 			corner(layer, UDim.new(1, 0))
 			glowLayers[i] = { layer, alpha }
 		end
-		-- Fundido manual del destello (sin CanvasGroup anidado)
 		local glowValue = new("NumberValue", { Value = 0 }, glowGroup)
 		glowValue.Changed:Connect(function(t)
 			for i = 1, #glowLayers do
@@ -1144,7 +1189,6 @@ local function makeApi(page, tab, register)
 			safe(o.Callback, obj.CurrentValue)
 			autosave()
 		end
-		-- NUEVO: toda la barra es tocable, con proteccion contra scroll accidental.
 		local hit = new("TextButton", {
 			Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, AutoButtonColor = false, Text = "", ZIndex = 10,
 		}, f)
@@ -1366,10 +1410,9 @@ local function makeApi(page, tab, register)
 		local obj = { Type = "Input", CurrentValue = o.CurrentValue or "", Name = o.Name }
 		tb.FocusLost:Connect(function(enter)
 			obj.CurrentValue = tb.Text
-			-- NUEVO: al terminar con Enter -> destello azul + vibracion pequeña
 			if enter then
-				flashBlue(box, 6, 0.4)
-				overlayFlash(f, 8, BLUE, 0.82, 0.6)
+				flashGlow(box, 6, 0.4)
+				overlayFlash(f, 8, Theme.Flash, 0.82, 0.6)
 			end
 			safe(o.Callback, tb.Text)
 			autosave()
@@ -1388,9 +1431,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- ============================================================
-	-- NUEVO 1: Textbox de CODIGO (Enter = nueva linea debajo)
-	-- ============================================================
 	function api:CreateCodeInput(o)
 		local height = o.Height or 180
 		local f = row(page, height, nextOrder())
@@ -1428,17 +1468,62 @@ local function makeApi(page, tab, register)
 		new("UISizeConstraint", { MinSize = Vector2.new(0, math.max(height - 44, 20)) }, tb)
 
 		local obj = { Type = "CodeInput", CurrentValue = o.CurrentValue or "", Name = o.Name or "Code input" }
-		-- Con MultiLine, Enter inserta una nueva linea; el valor se aplica al soltar el foco.
-		tb.FocusLost:Connect(function()
+		local lastText, lastCursor = tb.Text, #tb.Text + 1
+		local reopening = false
+		tb:GetPropertyChangedSignal("Text"):Connect(function()
+			if tb:IsFocused() then
+				lastText = tb.Text
+			end
+		end)
+		tb:GetPropertyChangedSignal("CursorPosition"):Connect(function()
+			if tb:IsFocused() and tb.CursorPosition > 0 then
+				lastCursor = tb.CursorPosition
+			end
+		end)
+		tb.Focused:Connect(function()
+			if reopening then
+				return
+			end
+			lastText = tb.Text
+			lastCursor = tb.CursorPosition > 0 and tb.CursorPosition or (#tb.Text + 1)
+		end)
+		tb.FocusLost:Connect(function(enter)
+			if enter then
+				local txt = tb.Text
+				local pos = math.clamp(lastCursor, 1, #txt + 1)
+				reopening = true
+				if txt == lastText then
+					tb.Text = txt:sub(1, pos - 1) .. "\n" .. txt:sub(pos)
+					pos += 1
+				else
+					pos = math.clamp(lastCursor, 1, #tb.Text + 1)
+				end
+				lastText = tb.Text
+				task.defer(function()
+					if tb.Parent then
+						tb:CaptureFocus()
+						pcall(function()
+							tb.CursorPosition = math.clamp(pos, 1, #tb.Text + 1)
+						end)
+					end
+					task.delay(0.15, function()
+						reopening = false
+					end)
+				end)
+				return
+			end
+			if reopening then
+				return
+			end
 			obj.CurrentValue = tb.Text
-			flashBlue(box, 6, 0.4)
+			flashGlow(box, 6, 0.4)
 			safe(o.Callback, tb.Text)
 			autosave()
 		end)
 		clearBtn.Activated:Connect(function()
 			tb.Text = ""
 			obj.CurrentValue = ""
-			flashBlue(box, 6, 0.4)
+			flashGlow(box, 6, 0.4)
 			safe(o.Callback, "")
 			autosave()
 		end)
@@ -1456,9 +1541,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- ============================================================
-	-- NUEVO 2: Textbox de MENSAJERIA (Enter aplica de inmediato)
-	-- ============================================================
 	function api:CreateMessageInput(o)
 		local name = o.Name or "Message"
 		local f = row(page, 40, nextOrder())
@@ -1496,12 +1578,12 @@ local function makeApi(page, tab, register)
 				return
 			end
 			obj.CurrentValue = text
-			flashBlue(box, 6, 0.4)
+			flashGlow(box, 6, 0.4)
 			safe(o.Callback, text, tonumber(text))
 			if o.ClearOnSend ~= false then
 				tb.Text = ""
 			end
-			if o.KeepFocus ~= false then
+			if o.KeepFocus == true then
 				task.delay(0.03, function()
 					if tb.Parent then
 						tb:CaptureFocus()
@@ -1528,9 +1610,6 @@ local function makeApi(page, tab, register)
 		return obj
 	end
 
-	-- ============================================================
-	-- NUEVO 3: Textbox de VALOR DE POTENCIA (solo numeros, Enter aplica)
-	-- ============================================================
 	function api:CreatePowerInput(o)
 		local decimal = o.AllowDecimal == true
 		local negative = o.AllowNegative == true
@@ -1590,7 +1669,6 @@ local function makeApi(page, tab, register)
 		end)
 
 		local obj = { Type = "PowerInput", CurrentValue = startValue, Name = o.Name }
-		-- Enter (o el boton "listo" del teclado) aplica el numero; si pierde el foco sin Enter, se restaura.
 		tb.FocusLost:Connect(function(enter)
 			if enter then
 				local n = tonumber(clean(tb.Text))
@@ -1601,8 +1679,8 @@ local function makeApi(page, tab, register)
 				n = limitValue(n)
 				obj.CurrentValue = n
 				tb.Text = fmt(n)
-				flashBlue(box, 6, 0.4)
-				overlayFlash(f, 8, BLUE, 0.82, 0.6)
+				flashGlow(box, 6, 0.4)
+				overlayFlash(f, 8, Theme.Flash, 0.82, 0.6)
 				safe(o.Callback, n)
 				autosave()
 			else
@@ -2036,7 +2114,6 @@ function SpaceHub:CreateWindow(settings)
 	local sepH = new("Frame", { Position = UDim2.fromOffset(8, 54), Size = UDim2.new(1, -16, 0, 1), BorderSizePixel = 0 }, mainView)
 	themed(sepH, "BackgroundColor3", "Line")
 
-	-- NUEVO: CanvasGroup (en vez de Frame) para poder desvanecer las paginas al cambiar de pestaña.
 	local content = new("CanvasGroup", { BackgroundTransparency = 1 }, mainView)
 
 	local card = new("Frame", {
@@ -2178,7 +2255,6 @@ function SpaceHub:CreateWindow(settings)
 		end
 		selectedTab = tab
 		tw(tab.Button, 0.15, { BackgroundTransparency = 0.7, TextColor3 = TEXT })
-		-- NUEVO: animacion estilo Rayfield al cambiar de pestaña (la pagina entra deslizandose y con fundido).
 		if prev and prev ~= tab then
 			local dir = (table.find(tabs, tab) or 0) > (table.find(tabs, prev) or 0) and 1 or -1
 			tab.Page.Position = UDim2.fromOffset(dir * 70, 0)
@@ -2794,6 +2870,7 @@ function SpaceHub:Destroy()
 	end
 	table.clear(allGuis)
 	table.clear(themeRegistry)
+	table.clear(softRegistry)
 	table.clear(themeHooks)
 	notifGui, notifHolder = nil, nil
 	self._window = nil
