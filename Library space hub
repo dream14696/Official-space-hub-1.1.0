@@ -10,7 +10,7 @@
 	See SpaceHub_Example.lua for every element and option.
 ]]
 
-local SpaceHub = { Version = "1.0.0", Flags = {}, Icons = {}, AutoSave = true }
+local SpaceHub = { Version = "1.0.0", Flags = {}, Icons = {}, AutoSave = true, Haptics = true }
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -18,6 +18,7 @@ local UserInputService = game:GetService("UserInputService")
 local ContentProvider = game:GetService("ContentProvider")
 local HttpService = game:GetService("HttpService")
 local GuiService = game:GetService("GuiService")
+local HapticService = game:GetService("HapticService")
 
 local player = Players.LocalPlayer
 
@@ -162,6 +163,36 @@ local function copyText(txt)
 	end
 	return false
 end
+
+-- Vibracion corta y suave (HapticService). Funciona en Delta si el dispositivo/control la soporta.
+local HAPTIC_STRENGTH = 0.22
+local HAPTIC_TIME = 0.05
+local hapticBusy = false
+local function haptic()
+	if not SpaceHub.Haptics or hapticBusy then
+		return
+	end
+	hapticBusy = true
+	task.spawn(function()
+		local fired = false
+		for _, inputType in ipairs({ Enum.UserInputType.Gamepad1, Enum.UserInputType.Touch }) do
+			pcall(function()
+				if HapticService:IsVibrationSupported(inputType) and HapticService:IsMotorSupported(inputType, Enum.VibrationMotor.Small) then
+					HapticService:SetMotor(inputType, Enum.VibrationMotor.Small, HAPTIC_STRENGTH)
+					fired = true
+					task.wait(HAPTIC_TIME)
+					HapticService:SetMotor(inputType, Enum.VibrationMotor.Small, 0)
+				end
+			end)
+			if fired then
+				break
+			end
+		end
+		task.wait(0.08)
+		hapticBusy = false
+	end)
+end
+SpaceHub.Haptic = haptic
 
 local ACCENTS = {
 	{ "á", "a" }, { "à", "a" }, { "ä", "a" }, { "â", "a" }, { "Á", "a" }, { "À", "a" }, { "Ä", "a" }, { "Â", "a" },
@@ -934,7 +965,8 @@ local function makeApi(page, tab, register)
 		local TRACK_OFF = C(98, 101, 110)
 		local STROKE_ON = C(176, 255, 204)
 		local STROKE_OFF = C(122, 140, 130)
-		local LAYERS = 50
+		local LAYERS = 200
+		local GLOW_REACH = 56 -- pixeles maximos que se extiende el destello por cada lado
 
 		local f = row(page, 40, nextOrder())
 		makeLabel(f, { Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -80, 1, 0), Text = o.Name, Font = Enum.Font.GothamMedium, TextSize = 14 })
@@ -943,14 +975,15 @@ local function makeApi(page, tab, register)
 		}, f)
 
 		local glowGroup = new("CanvasGroup", {
-			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1, 44, 1, 44),
+			AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, GLOW_REACH * 2 + 4, 1, GLOW_REACH * 2 + 4),
 			BackgroundTransparency = 1, GroupTransparency = 1, ZIndex = 1,
 		}, holder)
 		local outerColor, innerColor = C(40, 235, 170), C(40, 235, 105)
 		for i = 1, LAYERS do
 			local k = i / LAYERS
-			local extra = (LAYERS - i + 1) * 0.26
-			local alpha = 0.002 + 0.05 * k * k
+			local extra = (LAYERS - i + 1) * (GLOW_REACH / LAYERS)
+			local alpha = 0.0008 + 0.0165 * k * k
 			local layer = new("Frame", {
 				AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
 				Size = UDim2.new(0, 46 + extra * 2, 0, 26 + extra * 2),
@@ -1000,6 +1033,7 @@ local function makeApi(page, tab, register)
 			autosave()
 		end
 		track.Activated:Connect(function()
+			haptic()
 			obj:Set(not obj.CurrentValue)
 		end)
 		visual(obj.CurrentValue, false)
@@ -2080,6 +2114,12 @@ function SpaceHub:CreateWindow(settings)
 		Name = "Auto save", CurrentValue = true,
 		Callback = function(v)
 			SpaceHub.AutoSave = v
+		end,
+	})
+	sApi:CreateToggle({
+		Name = "Vibration", CurrentValue = true,
+		Callback = function(v)
+			SpaceHub.Haptics = v
 		end,
 	})
 	sApi:CreateSection("Window")
