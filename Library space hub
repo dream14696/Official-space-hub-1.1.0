@@ -39,6 +39,7 @@ local BAR_GRAY = Color3.fromRGB(120, 124, 134)
 local STEEL_A = Color3.fromRGB(44, 47, 58)
 local STEEL_B = Color3.fromRGB(26, 28, 36)
 local RED = Color3.fromRGB(240, 112, 132)
+local ICON_IDLE = Color3.fromRGB(138, 138, 138)
 
 local function C(r, g, b)
 	return Color3.fromRGB(r, g, b)
@@ -320,6 +321,51 @@ local function safeTap(hit, scroller, onTap)
 	end)
 end
 
+local function tintIcon(obj, color, animate)
+	if not (obj and obj.Parent) then
+		return
+	end
+	local function one(o)
+		local props
+		if o:IsA("ImageLabel") or o:IsA("ImageButton") then
+			if o.Image ~= "" then
+				props = { ImageColor3 = color }
+			end
+		elseif o:IsA("TextLabel") then
+			props = { TextColor3 = color }
+		elseif o:IsA("UIStroke") then
+			props = { Color = color }
+		elseif o:IsA("Frame") and o.BackgroundTransparency < 1 then
+			props = { BackgroundColor3 = color }
+		end
+		if props then
+			apply(o, props, animate, 0.15)
+		end
+	end
+	one(obj)
+	for _, d in ipairs(obj:GetDescendants()) do
+		one(d)
+	end
+end
+
+local function iconPress(hit, icon)
+	tintIcon(icon, ICON_IDLE, false)
+	local kind
+	hit.InputBegan:Connect(function(input)
+		local t = input.UserInputType
+		if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+			kind = t
+			tintIcon(icon, WHITE, true)
+		end
+	end)
+	bind(UserInputService.InputEnded, function(input)
+		if kind and input.UserInputType == kind then
+			kind = nil
+			tintIcon(icon, ICON_IDLE, true)
+		end
+	end)
+end
+
 local function numericKeyboard(tb)
 	pcall(function()
 		tb.ContentType = Enum.ContentType.Number
@@ -506,11 +552,12 @@ local function expandable(parent, order, name, bodyHeight)
 	})
 	local arrow = new("ImageLabel", {
 		AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(18, 18),
-		BackgroundTransparency = 1, Image = ASSETS.Arrow, ImageColor3 = TEXT, ScaleType = Enum.ScaleType.Fit,
+		BackgroundTransparency = 1, Image = ASSETS.Arrow, ImageColor3 = ICON_IDLE, ScaleType = Enum.ScaleType.Fit,
 	}, head)
 	loadImage(arrow, ASSETS.Arrow, function()
 		arrow.Image = ""
 		makeLabel(arrow, { Size = UDim2.fromScale(1, 1), Text = "v", Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Center })
+		tintIcon(arrow, ICON_IDLE, false)
 	end)
 	local body = new("Frame", {
 		LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, ClipsDescendants = true,
@@ -526,6 +573,7 @@ local function expandable(parent, order, name, bodyHeight)
 		return open
 	end
 	local click = new("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 2 }, head)
+	iconPress(click, arrow)
 	click.Activated:Connect(function()
 		ex.SetOpen(not open)
 	end)
@@ -2065,7 +2113,7 @@ function SpaceHub:CreateWindow(settings)
 	local function iconButton(id, symbol, x, parent)
 		local b = new("ImageButton", {
 			Position = UDim2.fromOffset(x, 0), Size = UDim2.fromOffset(30, 30), BackgroundTransparency = 1,
-			Image = id, ImageColor3 = WHITE, ScaleType = Enum.ScaleType.Fit,
+			Image = id, ImageColor3 = ICON_IDLE, ScaleType = Enum.ScaleType.Fit,
 		}, parent or controls)
 		loadImage(b, id, function()
 			b.Image = ""
@@ -2074,7 +2122,9 @@ function SpaceHub:CreateWindow(settings)
 			else
 				makeLabel(b, { Size = UDim2.fromScale(1, 1), Text = symbol, Font = Enum.Font.GothamBold, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center })
 			end
+			tintIcon(b, ICON_IDLE, false)
 		end)
+		iconPress(b, b)
 		return b
 	end
 	local btnSettings = iconButton(ASSETS.Settings, "gear", 0)
@@ -2154,17 +2204,24 @@ function SpaceHub:CreateWindow(settings)
 		metalStroke(boxFrame, 1.5)
 		local magnifier = new("ImageLabel", {
 			Position = UDim2.fromOffset(8, 7), Size = UDim2.fromOffset(18, 18), BackgroundTransparency = 1,
-			Image = ASSETS.Search, ImageColor3 = WHITE, ScaleType = Enum.ScaleType.Fit,
+			Image = ASSETS.Search, ImageColor3 = ICON_IDLE, ScaleType = Enum.ScaleType.Fit,
 		}, boxFrame)
 		loadImage(magnifier, ASSETS.Search, function()
 			magnifier.Image = ""
 			drawMagnifier(magnifier)
+			tintIcon(magnifier, ICON_IDLE, false)
 		end)
 		local box = new("TextBox", {
 			Position = UDim2.fromOffset(32, 0), Size = UDim2.new(1, -40, 1, 0), BackgroundTransparency = 1, ClearTextOnFocus = false,
 			PlaceholderText = "Search...", PlaceholderColor3 = MUTED, Text = "", Font = Enum.Font.Gotham,
 			TextSize = 13, TextColor3 = TEXT, TextXAlignment = Enum.TextXAlignment.Left,
 		}, boxFrame)
+		box.Focused:Connect(function()
+			tintIcon(magnifier, WHITE, true)
+		end)
+		box.FocusLost:Connect(function()
+			tintIcon(magnifier, ICON_IDLE, true)
+		end)
 		local results = new("ScrollingFrame", {
 			Position = UDim2.fromOffset(0, 40), Size = UDim2.new(1, 0, 1, -40), BackgroundTransparency = 1, BorderSizePixel = 0,
 			ScrollBarThickness = 3, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
@@ -2279,12 +2336,13 @@ function SpaceHub:CreateWindow(settings)
 		if icon then
 			local img = new("ImageLabel", {
 				AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, -2, 0.5, 0), Size = UDim2.fromOffset(18, 18),
-				BackgroundTransparency = 1, ImageColor3 = WHITE,
+				BackgroundTransparency = 1, ImageColor3 = ICON_IDLE,
 			}, btn)
 			if applyIcon(img, icon) then
 				padding.PaddingLeft = UDim.new(0, 30)
 				img.Position = UDim2.new(0, -20, 0.5, 0)
 				tab.HasIcon = true
+				iconPress(btn, img)
 			else
 				img:Destroy()
 			end
